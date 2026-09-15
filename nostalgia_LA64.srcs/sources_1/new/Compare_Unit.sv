@@ -25,11 +25,14 @@ module Compare_Unit(
     							case(CF)
     								1'b0:LT = 1'b0;
     								1'b1:LT = 1'b1;
+									default:;
     							endcase
     						end
+						default:;
     				endcase
     			end
     		1'b1: equal = 1'b1;
+			default:;
     	endcase
     	RT = ~(LT|equal);
     end

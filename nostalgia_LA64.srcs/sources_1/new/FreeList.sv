@@ -16,21 +16,17 @@ module FreeList(
     );
     reg [6:0] freelist [127:0];//2^7一共127个物理寄存器
     reg [6:0] top;//栈顶指针
-    integer i;
-    integer j;
-    integer k;
-    integer l;
-    integer m;
+
     //将释放的寄存器id压缩
     reg [2:0] write_cnt;
     reg [6:0] id [5:0];
     always@(*)begin
     	automatic reg [2:0] temp_write_cnt = 3'b000;
     	//将id清零
-    	for(m=0;m<6;m=m+1)begin
+    	for(int unsigned m=0;m<6;m=m+1)begin
     		id[m] = 7'b0;
     	end
-    	for(l=0;l<6;l=l+1)begin
+    	for(int unsigned l=0;l<6;l=l+1)begin
     		if(deallocation_valid[l] == 1'b1)begin
     			id[temp_write_cnt] = deallocation_reg_id[l];
     			temp_write_cnt = temp_write_cnt + 1'b1;
@@ -41,25 +37,25 @@ module FreeList(
     //当时钟上升沿读取寄存器id，下降沿写入释放的寄存器id
     always@(negedge CLK)begin//写入和复位
     	if(RST != 1'b1)begin
-    		for(k=0;k<6;k=k+1)begin
+    		for(int unsigned k=0;k<6;k=k+1)begin
     			if(k<write_cnt)begin
-    				freelist[top-use_num+k+1'b1] <= id[k];
+    				freelist[top-7'(use_num)+7'(k)+1'b1] <= id[k];
     			end
     		end
     		//重新计算top
-    		top <= top-use_num+write_cnt;
+    		top <= top-7'(use_num)+7'(write_cnt);
     	end else begin//复位逻辑
     		top <= 7'd127;
-    		for(i=0;i<128;i=i+1)begin
-    			freelist[i] <= i; //初始化freelist时把列表的项号写进表里，读取时不把第0项读出(r0永远映射到p0)
+    		for(int unsigned i=0;i<128;i=i+1)begin
+    			freelist[i] <= i[6:0]; //初始化freelist时把列表的项号写进表里，读取时不把第0项读出(r0永远映射到p0)
     			
     		end
     	end
     end
     always@(posedge CLK)begin//读出
-    	for(j=0;j<6;j=j+1)begin
+    	for(int unsigned j=0;j<6;j=j+1)begin
     			if(top > j)begin
-    				free_reg_id[j] <= freelist[(top-j)];//free_reg_id的第0位为栈顶数据。
+    				free_reg_id[j] <= freelist[(top-7'(j))];//free_reg_id的第0位为栈顶数据。
     				valid[j] <= 1'b1;                   //rat消耗空闲id时先消耗第0位
     			end else begin
     				valid[j] <= 1'b0;

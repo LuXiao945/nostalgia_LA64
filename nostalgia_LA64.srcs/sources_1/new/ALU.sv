@@ -23,6 +23,7 @@ module ALU(
 	input need_ext,//表示是否需要扩展-----详情见解码单元
 	input shift_mode,//最低为表示左右,0左1右,高位表示模式,00逻辑,01算术,10循环64bit,11循环32bit//默认为000
 	input shamt_choose,//0为shamt，1为rk中[4:0]数据，默认为0
+	input LT_mode,
 	input [2:0] sa,
 	input [5:0] msb,
 	input [5:0] lsb,

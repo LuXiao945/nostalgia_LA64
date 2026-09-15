@@ -38,7 +38,7 @@ module MUL_UNIT(
     	if(is_unsign == 1'b1)begin
     		product = a * b;
     	end else begin
-    		product = $signed(a) * $signed(b);
+    		product = unsigned'(128'($signed(a) * $signed(b)));//无视此次
     	end
     end
     

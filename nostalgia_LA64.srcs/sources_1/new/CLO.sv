@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 //用来统计前导1或尾随1的数量，如果想统计前导0请将数据取反后输入
-//2026/8/3优化了重复项,防止综合消耗过大
+//2026/8/3优化了重复项
 module CLO(
 	input [63:0] in,
 	input [2:0] mem_width,
@@ -25,9 +25,9 @@ module CLO(
     wire ZERO ;
     wire is32;
     assign is32 = (mem_width == 3'b011);
-    assign ZERO = (is32&&cnt32||cnt64);
-    
-    
+    assign ZERO = ((is32&&cnt32)||cnt64);//补0标志位,当32位全为1时cnt32为1其余全为0,当检测到zero信号为1时将cnt16-1置0,64位同理
+
+
     assign	cnt64 = (& L64) ? 1'b1 : 1'b0;
     
     assign	L64 = (mem_width == 3'b100) ? in : 64'b0;

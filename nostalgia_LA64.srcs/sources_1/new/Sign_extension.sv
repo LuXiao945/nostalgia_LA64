@@ -15,9 +15,10 @@ module Sign_extension(
     			(* parallel_case *)
     			case(imm_type)
     				2'b00:imm64={{52{i12[11]}},i12};
-    				2'b01:imm64={{50{i12[13]}},i14};
-    				2'b10:imm64={{48{i12[15]}},i16};
-    			    2'b11:imm64={{44{i12[19]}},i20};
+    				2'b01:imm64={{50{i14[13]}},i14};
+    				2'b10:imm64={{48{i16[15]}},i16};
+    			    2'b11:imm64={{44{i20[19]}},i20};
+					default:;
 				endcase
 		end else begin
 				(* parallel_case *)
@@ -26,6 +27,7 @@ module Sign_extension(
     				2'b01:imm64={50'd0,i14};
     				2'b10:imm64={48'd0,i16};
     			    2'b11:imm64={44'd0,i20};
+					default:;
 				endcase
 		end
     end
