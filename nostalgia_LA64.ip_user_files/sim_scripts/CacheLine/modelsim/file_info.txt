@@ -1,0 +1,5 @@
+xpm_memory.sv,systemverilog,xpm,E:/exe/vivado/2025.1/Vivado/data/ip/xpm/xpm_memory/hdl/xpm_memory.sv,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+xpm_VCOMP.vhd,vhdl,xpm,E:/exe/vivado/2025.1/Vivado/data/ip/xpm/xpm_VCOMP.vhd,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+blk_mem_gen_v8_4.v,verilog,blk_mem_gen_v8_4_11,../../../ipstatic/simulation/blk_mem_gen_v8_4.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+CacheLine.v,verilog,xil_defaultlib,../../../ip/CacheLine/sim/CacheLine.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+glbl.v,Verilog,xil_defaultlib,glbl.v

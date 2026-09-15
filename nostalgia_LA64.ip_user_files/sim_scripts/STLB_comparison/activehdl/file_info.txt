@@ -1,0 +1,3 @@
+blk_mem_gen_v8_4.v,verilog,blk_mem_gen_v8_4_11,../../../ipstatic/simulation/blk_mem_gen_v8_4.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+STLB_comparison.v,verilog,xil_defaultlib,../../../ip/STLB_comparison/sim/STLB_comparison.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+glbl.v,Verilog,xil_defaultlib,glbl.v

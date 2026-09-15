@@ -1,0 +1,2 @@
+CacheLine.v,verilog,xil_defaultlib,../../../ip/CacheLine/sim/CacheLine.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+glbl.v,Verilog,xil_defaultlib,glbl.v

@@ -1,0 +1,2 @@
+STLB_DATA.v,verilog,xil_defaultlib,../../../ip/STLB_DATA/sim/STLB_DATA.v,incdir="../../../../../../2025.1/Vivado/data/rsb/busdef"
+glbl.v,Verilog,xil_defaultlib,glbl.v
