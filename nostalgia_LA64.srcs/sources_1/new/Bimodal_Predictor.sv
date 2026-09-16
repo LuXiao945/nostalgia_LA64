@@ -34,19 +34,52 @@ module Bimodal_Predictor(
     assign is_taken0 = pht [pht_address0] [1];
     assign is_taken1 = pht [pht_address1] [1];
     //pht写入及复位
+    //如果两次写入相同地址仲裁没写
     always@(posedge CLK)begin//2位状态机明天再写
         if(RST)begin//复位信号高电平有效
             //pht复位
             for(int unsigned a=0;a<1024;a=a+1)begin
-                pht[a] <= 2'b00; 
+                pht[a] <= 2'b01; //初始化为弱不跳转
             end
         end else begin
-            if (commit_valid0 && (pht[commit_PC0[11:2]][1]==branch_direction0)) begin
-                pht[commit_PC0[11:2]] <= ;
-            end else begin
-                
+            if(commit_valid0)begin//预测成功
+                if(pht[commit_PC0[11:2]][1]==branch_direction0)begin
+                    case(pht[commit_PC0[11:2]])
+                        2'b00:pht[commit_PC0[11:2]] <= 2'b00;
+                        2'b01:pht[commit_PC0[11:2]] <= 2'b00;
+                        2'b10:pht[commit_PC0[11:2]] <= 2'b11;
+                        2'b11:pht[commit_PC0[11:2]] <= 2'b11;
+                        default:;
+                    endcase
+                end else begin//预测失败
+                    case(pht[commit_PC0[11:2]])
+                        2'b00:pht[commit_PC0[11:2]] <= 2'b01;
+                        2'b01:pht[commit_PC0[11:2]] <= 2'b10;
+                        2'b10:pht[commit_PC0[11:2]] <= 2'b01;
+                        2'b11:pht[commit_PC0[11:2]] <= 2'b10;
+                        default:;
+                    endcase
+                end
             end
-            
+            if(commit_valid1)begin
+                if((pht[commit_PC1[11:2]][1]==branch_direction1))begin
+                    case(pht[commit_PC1[11:2]])
+                        2'b00:pht[commit_PC1[11:2]] <= 2'b00;
+                        2'b01:pht[commit_PC1[11:2]] <= 2'b00;
+                        2'b10:pht[commit_PC1[11:2]] <= 2'b11;
+                        2'b11:pht[commit_PC1[11:2]] <= 2'b11;
+                        default:;
+                    endcase
+                end else begin//预测失败
+                    case(pht[commit_PC1[11:2]])
+                        2'b00:pht[commit_PC1[11:2]] <= 2'b01;
+                        2'b01:pht[commit_PC1[11:2]] <= 2'b10;
+                        2'b10:pht[commit_PC1[11:2]] <= 2'b01;
+                        2'b11:pht[commit_PC1[11:2]] <= 2'b10;
+                        default:;
+                    endcase
+                end
+            end
         end
     end
 endmodule

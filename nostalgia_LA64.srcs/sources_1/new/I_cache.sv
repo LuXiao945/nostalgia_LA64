@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+//ramip核先写后读
 module I_cache(
 	input CLK,
 	input [63:0] PC,
