@@ -14,7 +14,7 @@ module TLB(
 	output reg [47:0] ppn_i,//pa
 	output reg [5:0] ps_i,//页大小
 	output reg [1:0] plv_i,// 特权等级（PLV），2比特。该页表项对应的特权等级。当RPLV=0时，该页表项可以被任何特权
-	output reg [2:0] mat_i,//存储访问类型
+	output reg [1:0] mat_i,//存储访问类型
 	output reg d_i,//脏位
 	output reg v_i,//有效位
 	output reg nx_i,//不可执行位
@@ -29,7 +29,7 @@ module TLB(
 	output reg [47:0] ppn_d,
 	output reg [5:0] ps_d,
 	output reg [1:0] plv_d,
-	output reg [2:0] mat_d,
+	output reg [1:0] mat_d,
 	output reg d_d,
 	output reg v_d,
 	output reg nx_d,

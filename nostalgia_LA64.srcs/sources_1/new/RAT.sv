@@ -107,7 +107,7 @@ module RAT(
     integer j;
     //temp_pdes向量用来零时接受分配的空闲id,等时钟的下降沿再输出给pdes0，1，2.....
     reg [6:0] temp_pdes [5:0];
-    reg temp_stop_rat;
+    //reg temp_stop_rat;
     //给des分配空闲id
     always@(*)begin
     	//创建已分配id计数器
