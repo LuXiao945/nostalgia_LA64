@@ -146,12 +146,6 @@ CacheTag U3_CacheTag (
   //创建零时变量按ppn后2位存储对应的bank值以解决同义问题
   reg [511:0] temp_bank [7:0];
   reg [40:0] temp_tag [7:0];
-  //循环变量
-  integer a;
-  integer b;
-  integer c;
-  //年龄位更改
-  integer d;
   //insn临时接收命中的指令
   reg [31:0] insn [15:0];
   //指令有效位
@@ -182,33 +176,34 @@ CacheTag U3_CacheTag (
   		  		temp_bank = bank3;
   				temp_tag = tag3; 
   			end
+		default:;
   	endcase
   	//判断是否命中
-  	for(a=0;a<8;a=a+1)begin//遍历8路组相连并判断命中哪一路
+  	for(int unsigned a=0;a<8;a=a+1)begin//遍历8路组相连并判断命中哪一路
   		if((temp_tag[a][40:5]==TLB_ppn)&&temp_tag[a][3])begin
-  			hit_way = a;
+  			hit_way = 3'(a);
   			//取出8条或更少的指令，当第一或二次取指或者第一或二次分支预测后取值
   			//由于cacheline有16条指令，当首指令不是第1条或者第9条时，
   			//在前半个cacheline第一次能取满8条，第二次无法取满8条，
   			//在后半个cacheline第一次无法取满8条，由于cacheline的16条指令是8的倍数，所以之后都能取满8条指令
   		 	hit = 1'b1;
   		 	//将命中的cacheline提取出来
-  		 	for(b=0;b<16;b=b+1)begin//提取cacheline中16个指令 b为第n条指令
+  		 	for(int unsigned b=0;b<16;b=b+1)begin//提取cacheline中16个指令 b为第n条指令
   		 		//+：左侧为基地址，右侧为宽度，基地址向高位取32bit
   		 		insn[b] = temp_bank[a][(b<<5) +: 32];// b<<5是b*32的优化写法,表示取命中的bank中的第b条指令
   		 	end
   		 	//根据address_lo选择第一条指令并连续读取最多8条
-  		 	for(c=0;c<8;c=c+1)begin
+  		 	for(int unsigned c=0;c<8;c=c+1)begin
   		 		//判断寻址指令是否越界，越界就将有效位置0，
   		 		//一共0-15，16条指令，超过15就越界
-  		 		if(((address_lo>>2)+c)>15)begin//由于是字节寻址，每个指令4字节，所以将lo右移2位就能直接寻址到具体指令(address_lo>>2)
+  		 		if(((address_lo>>2)+6'(c))>15)begin//由于是字节寻址，每个指令4字节，所以将lo右移2位就能直接寻址到具体指令(address_lo>>2)
 				//+c是因为连续取8条指令，每取一条偏移+1,括号中表示的是当前取的是第几条指令
   		 			vaild = 1'b0;
   		 			insn_final[c] = {vaild,96'b0};
   		 		end 
   		 		else begin
   		 			vaild = 1'b1;
-  		 			insn_final[c] = {vaild,PC+(c<<5),insn[(address_lo>>2)+c]};//c<<5是c*32，每两条指令的pc相差4字节所以pc+(c<<5)
+  		 			insn_final[c] = {vaild,PC+64'(c<<5),insn[(address_lo>>2)+6'(c)]};//c<<5是c*32，每两条指令的pc相差4字节所以pc+(c<<5)
   		 		end             						//insn[(address_lo>>2)+c]为取指令，括号内表征当前取第几条指令
   		 		
   		 	end	
@@ -248,6 +243,7 @@ CacheTag U3_CacheTag (
   			3'b101:begin write_tag[0][0] = 0;write_tag[2][0] = 1;write_tag[5][0] = 0;end
   			3'b110:begin write_tag[0][0] = 0;write_tag[2][0] = 0;write_tag[6][0] = 1;end
   			3'b111:begin write_tag[0][0] = 0;write_tag[2][0] = 0;write_tag[6][0] = 0;end
+			default:;
   		endcase
 	end
 	//未命中写入
@@ -259,14 +255,17 @@ CacheTag U3_CacheTag (
   					case(temp_tag[3][0])
   						1'b0:fuck_choose_cacheline = 3'd0;
   						1'b1:fuck_choose_cacheline = 3'd1;
+						default:;
   					endcase
   				end
   				1'b1:begin
   					case(temp_tag[4][0])
   						1'b0:fuck_choose_cacheline = 3'd2;
   						1'b1:fuck_choose_cacheline = 3'd3;
+						default:;
   					endcase
   				end
+				default:;
   			endcase
   		end
   		1'b1:begin
@@ -275,16 +274,20 @@ CacheTag U3_CacheTag (
   					case(temp_tag[5][0])
   						1'b0:fuck_choose_cacheline = 3'd4;
   						1'b1:fuck_choose_cacheline = 3'd5;
+						default:;
   					endcase
   				end
   				1'b1:begin
   					case(temp_tag[6][0])
   						1'b0:fuck_choose_cacheline = 3'd6;
   						1'b1:fuck_choose_cacheline = 3'd7;
+						default:;
   					endcase
   				end
+				default:;
   			endcase
   		end
+		default:;
   	endcase
   	        //ppn/脏位/有效位/lru
         //36/1/1/3

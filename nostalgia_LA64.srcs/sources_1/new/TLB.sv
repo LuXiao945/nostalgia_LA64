@@ -2,6 +2,7 @@
 //该模块为半成品，没写写入逻辑和读出逻辑，只判断了是否命中，时序可能还有问题
 //2026/7/2该模块没写写入逻辑，未仿真
 //16行8路组相联stlb+8路全相联mtlb
+//2026/9/17将8路mtlb扩展成32路
 module TLB(
 
     input CLK,
@@ -21,6 +22,7 @@ module TLB(
 	output reg nr_i,//不可读位
 	output reg rplv_i,//受限特权等级使能（RPLV），1比特。页表项是否仅被对应特权等级的程序访问的控制位。请参
 	//数据端口--------------------------------------------------------
+	input address_mode,//寻址模式 0为vaddr寻址 1为tlb索引寻址
 	input en_d,//使能信号
     input rw_d, //读写控制信号0=r 1=w
 	input [63:0] vaddr_d,
@@ -34,22 +36,23 @@ module TLB(
 	output reg v_d,
 	output reg nx_d,
 	output reg nr_d,
-	output reg rplv_d
+	output reg rplv_d,
 	
+	output logic [7:0] TLB_index//TLBSRCH指令输出的索引，此指令从d端访问
 	
     );
 
     //记录命中的页表项，将页表项的数据输出
-    reg [2:0] i_hit_way;
+    reg [4:0] i_hit_way;
     reg i_hit_op;//0说明在stlb中命中，1说明在mtlb中命中
-    reg [2:0] d_hit_way;
+    reg [4:0] d_hit_way;
     reg d_hit_op;//0说明在stlb中命中，1说明在mtlb中命中
     
-    //8路全相联mtlb处理大页
+    //32路全相联mtlb处理大页
     //mtlb比较部分
-    reg [52:0] mtlb_c [7:0];
-    reg [44:0] mtlb_d0 [7:0];
-    reg [44:0] mtlb_d1 [7:0];
+    reg [52:0] mtlb_c [31:0];
+    reg [44:0] mtlb_d0 [31:0];
+    reg [44:0] mtlb_d1 [31:0];
     reg [35:0] address_mask;
     //stlb比较部分---------------------------------------------------------------------------------
     //实例化8个sram存储stlb比较部分
@@ -130,7 +133,7 @@ module TLB(
 	always@(*)begin
 		//初始化参数
 		hit_i = 1'b0;
-		i_hit_way = 3'b0;
+		i_hit_way = 5'b0;
     	i_hit_op = 1'b0;
     	//判断stlb i端是否命中
 		for(a=0;a<8;a=a+1)begin
@@ -150,7 +153,7 @@ module TLB(
 		end
 		//初始化参数
 		hit_d = 1'b0;
-		d_hit_way = 3'b0;
+		d_hit_way = 5'b0;
     	d_hit_op = 1'b0;
     	//判断stlb d端是否命中
 		for(b=0;b<8;b=b+1)begin
@@ -169,7 +172,7 @@ module TLB(
 			
 		end
 		//判断mtlb是否命中
-		for(e=0;e<8;e=e+1)begin
+		for(e=0;e<32;e=e+1)begin
     		//由于mtlb的页大小不唯一，获取ps[17:12]数据，用来生成掩码
     		case(mtlb_c[e][17:12])
     			6'd12:address_mask = 36'b111111111111111111111111111111111111;
@@ -263,26 +266,26 @@ module TLB(
 				1'b0:begin//0说明在stlb中命中，1说明在mtlb中命中
 						case(odd_even_sel_i)
 							1'b0:begin
-									ppn_i  = {stlb_d0_i[i_hit_way][44:9],vaddr_i[11:0]};
+									ppn_i  = {stlb_d0_i[i_hit_way[2:0]][44:9],vaddr_i[11:0]};
 									ps_i   = 6'b001100;//stlb中页大小统一为4kb
-									plv_i  = stlb_d0_i[i_hit_way][7:6];
-									mat_i  = stlb_d0_i[i_hit_way][5:4];
-									d_i    = stlb_d0_i[i_hit_way][1];
-									v_i    = stlb_d0_i[i_hit_way][0];
-									nx_i   = stlb_d0_i[i_hit_way][3];
-									nr_i   = stlb_d0_i[i_hit_way][2];
-									rplv_i = stlb_d0_i[i_hit_way][8];
+									plv_i  = stlb_d0_i[i_hit_way[2:0]][7:6];
+									mat_i  = stlb_d0_i[i_hit_way[2:0]][5:4];
+									d_i    = stlb_d0_i[i_hit_way[2:0]][1];
+									v_i    = stlb_d0_i[i_hit_way[2:0]][0];
+									nx_i   = stlb_d0_i[i_hit_way[2:0]][3];
+									nr_i   = stlb_d0_i[i_hit_way[2:0]][2];
+									rplv_i = stlb_d0_i[i_hit_way[2:0]][8];
 								end
 							1'b1:begin
-									ppn_i  = {stlb_d1_i[i_hit_way][44:9],vaddr_i[11:0]};
+									ppn_i  = {stlb_d1_i[i_hit_way[2:0]][44:9],vaddr_i[11:0]};
 									ps_i   = 6'b001100;//stlb中页大小统一为4kb
-									plv_i  = stlb_d1_i[i_hit_way][7:6];
-									mat_i  = stlb_d1_i[i_hit_way][5:4];
-									d_i    = stlb_d1_i[i_hit_way][1];
-									v_i    = stlb_d1_i[i_hit_way][0];
-									nx_i   = stlb_d1_i[i_hit_way][3];
-									nr_i   = stlb_d1_i[i_hit_way][2];
-									rplv_i = stlb_d1_i[i_hit_way][8];
+									plv_i  = stlb_d1_i[i_hit_way[2:0]][7:6];
+									mat_i  = stlb_d1_i[i_hit_way[2:0]][5:4];
+									d_i    = stlb_d1_i[i_hit_way[2:0]][1];
+									v_i    = stlb_d1_i[i_hit_way[2:0]][0];
+									nx_i   = stlb_d1_i[i_hit_way[2:0]][3];
+									nr_i   = stlb_d1_i[i_hit_way[2:0]][2];
+									rplv_i = stlb_d1_i[i_hit_way[2:0]][8];
 								end 
 						endcase
 					end
@@ -318,32 +321,34 @@ module TLB(
     	if(hit_d&&!rw_d&&en_d)begin
 			case(d_hit_op)
 				1'b0:begin//0说明在stlb中命中，1说明在mtlb中命中
+						TLB_index = {1'b0,vaddr_d[16:13],d_hit_way[2:0]};
 						case(odd_even_sel_d)
 							1'b0:begin
-									ppn_d  = {stlb_d0_d[d_hit_way][44:9],vaddr_d[11:0]};
+									ppn_d  = {stlb_d0_d[d_hit_way[2:0]][44:9],vaddr_d[11:0]};
 									ps_d   = 6'b001100;//stlb中页大小统一为4kb
-									plv_d  = stlb_d0_d[d_hit_way][7:6];
-									mat_d  = stlb_d0_d[d_hit_way][5:4];
-									d_d    = stlb_d0_d[d_hit_way][1];
-									v_d    = stlb_d0_d[d_hit_way][0];
-									nx_d   = stlb_d0_d[d_hit_way][3];
-									nr_d   = stlb_d0_d[d_hit_way][2];
-									rplv_d = stlb_d0_d[d_hit_way][8];
+									plv_d  = stlb_d0_d[d_hit_way[2:0]][7:6];
+									mat_d  = stlb_d0_d[d_hit_way[2:0]][5:4];
+									d_d    = stlb_d0_d[d_hit_way[2:0]][1];
+									v_d    = stlb_d0_d[d_hit_way[2:0]][0];
+									nx_d   = stlb_d0_d[d_hit_way[2:0]][3];
+									nr_d   = stlb_d0_d[d_hit_way[2:0]][2];
+									rplv_d = stlb_d0_d[d_hit_way[2:0]][8];
 								end
 							1'b1:begin
-									ppn_d  = {stlb_d1_d[d_hit_way][44:9],vaddr_d[11:0]};
+									ppn_d  = {stlb_d1_d[d_hit_way[2:0]][44:9],vaddr_d[11:0]};
 									ps_d   = 6'b001100;//stlb中页大小统一为4kb
-									plv_d  = stlb_d1_d[d_hit_way][7:6];
-									mat_d  = stlb_d1_d[d_hit_way][5:4];
-									d_d    = stlb_d1_d[d_hit_way][1];
-									v_d    = stlb_d1_d[d_hit_way][0];
-									nx_d   = stlb_d1_d[d_hit_way][3];
-									nr_d   = stlb_d1_d[d_hit_way][2];
-									rplv_d = stlb_d1_d[d_hit_way][8];
+									plv_d  = stlb_d1_d[d_hit_way[2:0]][7:6];
+									mat_d  = stlb_d1_d[d_hit_way[2:0]][5:4];
+									d_d    = stlb_d1_d[d_hit_way[2:0]][1];
+									v_d    = stlb_d1_d[d_hit_way[2:0]][0];
+									nx_d   = stlb_d1_d[d_hit_way[2:0]][3];
+									nr_d   = stlb_d1_d[d_hit_way[2:0]][2];
+									rplv_d = stlb_d1_d[d_hit_way[2:0]][8];
 								end 
 						endcase
 					end
 				1'b1:begin
+						TLB_index = 8'b01111111 + 8'(d_hit_way) + 1'b1;
 						case(odd_even_sel_d)//指令奇偶页选择，1为奇数页 0为偶数页 
 							1'b0:begin
 									ppn_d  = temp_ppn_d;
