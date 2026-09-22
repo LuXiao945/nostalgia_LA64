@@ -50,8 +50,27 @@ module TLB(
 	output reg rplv_d1,
 	
 	output logic odd_even_sel_d,//tlb奇偶页选择，1为奇数页 0为偶数页
-	output logic [7:0] TLB_index//TLBSRCH指令输出的索引，此指令从d端访问
+	output logic [7:0] TLB_index,//TLBSRCH指令输出的索引，此指令从d端访问
 	//数据写端口
+	input logic [5:0] csr_ps,// 将CSR.TLBIDX.PS填入
+
+	input logic [47:0] csr_ppn_d0,
+	input logic [1:0] csr_plv_d0,
+	input logic [1:0] csr_mat_d0,
+	input logic csr_d_d0,
+	input logic csr_v_d0,
+	input logic csr_nx_d0,
+	input logic csr_nr_d0,
+	input logic csr_rplv_d0,
+
+	input logic [47:0] csr_ppn_d1,
+	input logic [1:0] csr_plv_d1,
+	input logic [1:0] csr_mat_d1,
+	input logic csr_d_d1,
+	input logic csr_v_d1,
+	input logic csr_nx_d1,
+	input logic csr_nr_d1,
+	input logic csr_rplv_d1
     );
 
     //记录命中的页表项，将页表项的数据输出
@@ -404,5 +423,6 @@ module TLB(
     
 	//0说明在stlb中命中，1说明在mtlb中命中   索引号先从stlb分配再mtlb,mtlb从stlb(128项8'b01111111)的基础上加
 	assign TLB_index = d_hit_op ? (8'b01111111 + 8'(d_hit_way) + 1'b1) : ({1'b0,vaddr_d[16:13],d_hit_way[2:0]});
+	//写入逻辑
 
 endmodule
