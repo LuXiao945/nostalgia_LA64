@@ -3,6 +3,8 @@
 //2026/7/2该模块没写写入逻辑，未仿真
 //16行8路组相联stlb+8路全相联mtlb
 //2026/9/17将8路mtlb扩展成32路
+//判断是否命中时只判断了存在位，没有判断有效位(一时半会不打算修,想看看会发生什么问题)
+//指令端不允许写
 module TLB(
 
     input CLK,
@@ -23,9 +25,8 @@ module TLB(
 	output reg rplv_i,//受限特权等级使能（RPLV），1比特。页表项是否仅被对应特权等级的程序访问的控制位。请参
 	//数据读端口--------------------------------------------------------
 	input logic [7:0] TLBWR_index,//TLBWR指令输入的索引，此指令从d端访问
-	input address_mode,//寻址模式 0为vaddr寻址 1为tlb索引寻址
-	input en_d,//使能信号
-    input rw_d, //读写控制信号0=r 1=w
+	input logic address_mode,//寻址模式 0为vaddr寻址 1为tlb索引寻址
+	input logic we_d,//当写有效时当前节拍读结果不输出
 	input [63:0] vaddr_d,
 	input [9:0] asid_d,
 	output reg hit_d,
@@ -70,9 +71,30 @@ module TLB(
 	input logic csr_v_d1,
 	input logic csr_nx_d1,
 	input logic csr_nr_d1,
-	input logic csr_rplv_d1
+	input logic csr_rplv_d1,
+	//写tlb控制信号
+	/*
+	若此时CSR.TLBRERA.IsTLBR=1，
+	即处于TLB重填例外处理过程中，那么TLB中总是填入一个有效项（即TLB项的E位为1）。否则的话，
+	就需要看CSR.TLBIDX.NE位的值。此时如果CSR.TLBIDX.NE=1，那么TLB中会被填入一个无效TLB项；
+	仅当CSR.TLBIDX.NE=0 时，TLB中才会被填入一个有效TLB项
+	*/
+	input logic CSR_TLBRERA_IsTLBR,
+	input logic CSR_TLBIDX_NE,
+	input logic [5:0] CSR_STLBPS,
+	/*
+	当被填入的页表项的
+	页大小与STLB所配置的页大小（CSR.STLBPS）相等时将被填入STLB，否则将被填入MTLB。
+	*/
+	input logic w_mode//0为索引写,1为根据lru写
     );
-
+	/*
+	temp_TLB_index用来存储实际访问tlb表项的索引
+	当读取时,此项为tlbwr_index
+	当写入时,如果是无效化指令且按索引无效化那么index为tlbwr_index否则需要遍历tlb那么则在提交阶段时将indexcnt清零再递增，直到达到最大索引
+	*/
+	logic [7:0] indexcnt;
+	logic [7:0] temp_TLB_index;
     //记录命中的页表项，将页表项的数据输出
     reg [4:0] i_hit_way;
     reg i_hit_op;//0说明在stlb中命中，1说明在mtlb中命中
@@ -95,9 +117,9 @@ module TLB(
 		for(i=0;i<8;i=i+1)begin : STLB_C
 			STLB_comparison U_STLB_C(
   				.clka(CLK),    // input wire clka
-  				.wea(),// input wire [0 : 0] wea
+  				.wea(1'b0),// input wire [0 : 0] wea
   				.addra(vaddr_i[16:13]),//用输入地址的低位寻址cache组
-  				.dina(),    // input wire [52 : 0] dina
+  				.dina(53'b0),    // input wire [52 : 0] dina
   				.douta(stlb_c_i[i]),  // output wire [52 : 0] douta
   				.clkb(CLK),    // input wire clkb
   				.web(),      // input wire [0 : 0] web
@@ -117,9 +139,9 @@ module TLB(
 		for(j=0;j<8;j=j+1)begin : STLB_D0
 			STLB_DATA U_STLB_D0 (
   			.clka(CLK),    // input wire clka
-  			.wea(),      // input wire [0 : 0] wea
+  			.wea(1'b0),      // input wire [0 : 0] wea
   			.addra(vaddr_i[16:13]),  // input wire [3 : 0] addra
-  			.dina(),    // input wire [44 : 0] dina
+  			.dina(45'b0),    // input wire [44 : 0] dina
  			 .douta(stlb_d0_i[j]),  // output wire [44 : 0] douta
   			.clkb(CLK),    // input wire clkb
   			.web(),      // input wire [0 : 0] web
@@ -137,9 +159,9 @@ module TLB(
 		for(k=0;k<8;k=k+1)begin : STLB_D1
 			STLB_DATA U_STLB_D1 (
   			.clka(CLK),    // input wire clka
-  			.wea(),      // input wire [0 : 0] wea
+  			.wea(1'b0),      // input wire [0 : 0] wea
   			.addra(vaddr_i[16:13]),  // input wire [3 : 0] addra
-  			.dina(),    // input wire [44 : 0] dina
+  			.dina(45'b0),    // input wire [44 : 0] dina
  			 .douta(stlb_d1_i[k]),  // output wire [44 : 0] douta
   			.clkb(CLK),    // input wire clkb
   			.web(),      // input wire [0 : 0] web
@@ -150,7 +172,7 @@ module TLB(
 		end
 	endgenerate
 	
-	//判断L1 TLB是否命中-------------------------------------------------------------
+	//判断TLB是否命中-------------------------------------------------------------
 	reg odd_even_sel_i;//tlb奇偶页选择，1为奇数页 0为偶数页 
     //reg odd_even_sel_d;定义在输出端口
     reg [47:0] temp_ppn_i;//临时储存ppn
@@ -370,7 +392,7 @@ module TLB(
 		d端为了支持tlb维护指令,一次读取把奇偶双页全部取出
 		并且读写data端口复用
 		*/
-    	if(hit_d&&!rw_d&&en_d)begin
+    	if(hit_d&&(!we_d))begin
 			case(d_hit_op)
 				1'b0:begin//0说明在stlb中命中，1说明在mtlb中命中
 						ps_d   = 6'b001100;//stlb中页大小统一为4kb
