@@ -1,0 +1,7 @@
+*.wdb
+nostalgia_LA64.sim/
+nostalgia_LA64.cache/
+nostalgia_LA64.gen/
+nostalgia_LA64.hw/
+nostalgia_LA64.runs/
+nostalgia_LA64.xpr
